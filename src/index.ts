@@ -16,9 +16,15 @@ app.use("/product", productRoute);
 
 async function start() {
   try {
-    await mongoose.connect(process.env.MONGO_URI as string);
+    const mongoUri = process.env.MONGO_URI;
+
+    if (!mongoUri) {
+      throw new Error("MONGO_URI is not configured");
+    }
+
+    await mongoose.connect(mongoUri);
     console.log("Mongo connected!");
-    //seed the products to database
+    // seed the products to database
     await seedInitialProducts();
 
     app.listen(PORT, () =>

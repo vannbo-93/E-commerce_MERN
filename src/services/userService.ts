@@ -15,6 +15,55 @@ interface JWTPayload {
   email: string;
 }
 
+const normalizeEmail = (email: string): string => email.trim().toLowerCase();
+
+type ValidationResult =
+  | { valid: false; message: string }
+  | {
+      valid: true;
+      firstName: string;
+      lastName: string;
+      email: string;
+      password: string;
+    };
+
+const validateUserInput = ({
+  firstName,
+  lastName,
+  email,
+  password,
+}: {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  password?: string;
+}): ValidationResult => {
+  const cleanedFirstName = firstName?.trim();
+  const cleanedLastName = lastName?.trim();
+  const cleanedPassword = password?.trim();
+  const cleanedEmail = normalizeEmail(email ?? "");
+
+  if (!cleanedFirstName || !cleanedLastName) {
+    return { valid: false, message: "First name and last name are required." };
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)) {
+    return { valid: false, message: "A valid email is required." };
+  }
+
+  if (!cleanedPassword || cleanedPassword.length < 6) {
+    return { valid: false, message: "Password must be at least 6 characters long." };
+  }
+
+  return {
+    valid: true,
+    firstName: cleanedFirstName,
+    lastName: cleanedLastName,
+    email: cleanedEmail,
+    password: cleanedPassword,
+  };
+};
+
 const generateJWT = ({
   userId,
   firstName,
@@ -42,18 +91,32 @@ export const register = async ({
   email,
   password,
 }: RegisterParams): Promise<ServiceResult<any>> => {
-  const findUser = await userModel.findOne({ email });
+  const validation = validateUserInput({ firstName, lastName, email, password });
+
+  if (!validation.valid) {
+    return {
+      statusCode: 400,
+      data: { message: validation.message },
+    };
+  }
+
+  const normalizedEmail = validation.email;
+  const normalizedFirstName = validation.firstName;
+  const normalizedLastName = validation.lastName;
+  const normalizedPassword = validation.password;
+
+  const findUser = await userModel.findOne({ email: normalizedEmail } as any);
 
   if (findUser) {
     return { statusCode: 409, data: { message: "User already exists!" } };
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+  const hashedPassword = await bcrypt.hash(normalizedPassword, 10);
   const newUser = new userModel({
-    email,
+    email: normalizedEmail,
     password: hashedPassword,
-    firstName,
-    lastName,
+    firstName: normalizedFirstName,
+    lastName: normalizedLastName,
   });
   await newUser.save();
 
@@ -62,11 +125,15 @@ export const register = async ({
     data: {
       token: generateJWT({
         userId: newUser._id.toString(),
-        firstName,
-        lastName,
-        email,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
       }),
-      user: { firstName, lastName, email },
+      user: {
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizedEmail,
+      },
     },
   };
 };
@@ -80,7 +147,16 @@ export const login = async ({
   email,
   password,
 }: LoginParams): Promise<ServiceResult<any>> => {
-  const findUser = await userModel.findOne({ email });
+  const normalizedEmail = normalizeEmail(email);
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return {
+      statusCode: 400,
+      data: { message: "A valid email is required." },
+    };
+  }
+
+  const findUser = await userModel.findOne({ email: normalizedEmail } as any);
 
   if (!findUser) {
     return {
@@ -89,7 +165,7 @@ export const login = async ({
     };
   }
 
-  const passwordMatch = await bcrypt.compare(password, findUser.password);
+  const passwordMatch = await bcrypt.compare(password.trim(), findUser.password);
   if (passwordMatch) {
     return {
       statusCode: 200,
