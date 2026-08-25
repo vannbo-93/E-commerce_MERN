@@ -7,12 +7,14 @@ import mongoose from "mongoose";
 import userRoute from "./routes/userRoute.js";
 import { seedInitialProducts } from "./services/productService.js";
 import productRoute from "./routes/productRoute.js";
+import cartRoute from "./routes/cartRoute.js";
 
 const app = express();
 const PORT = 3001;
 app.use(express.json());
 app.use("/user", userRoute);
 app.use("/product", productRoute);
+app.use("/cart", cartRoute);
 
 async function start() {
   try {
