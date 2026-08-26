@@ -18,9 +18,7 @@ export const getActiveCartForUser = async ({
     status: "active",
   });
 
-  const cart = session
-    ? await query.session(session)
-    : await query;
+  const cart = session ? await query.session(session) : await query;
 
   if (cart) {
     return cart;
@@ -31,9 +29,7 @@ export const getActiveCartForUser = async ({
     status: "active",
   });
 
-  return session
-    ? await newCart.save({ session })
-    : await newCart.save();
+  return session ? await newCart.save({ session }) : await newCart.save();
 };
 
 interface AddItemToCart {
@@ -145,4 +141,49 @@ export const addItemToCart = async ({
   } finally {
     await session.endSession();
   }
+};
+
+interface UpdateItemInCart {
+  productId: string;
+  quantity: number;
+  userId: string;
+}
+
+export const updateItemInCart = async ({productId,quantity,userId,}: UpdateItemInCart) => {
+  const cart = await getActiveCartForUser({ userId });
+
+  const existsInCart = cart.items.find(
+    (p) => p.product.toString() === productId,
+  );
+
+  if (!existsInCart) {
+    return { data: "Item does not exist in cart", statusCode: 400 };
+  }
+
+  const product = await productModel.findById(productId);
+
+  if (!product) {
+    return { data: "Product not found!", statusCode: 400 };
+  }
+
+  if (product.stock < quantity) {
+    return { data: "Low stock for item", statusCode: 400 };
+  }
+
+  existsInCart.quantity = quantity;
+
+  const otherCartItems = cart.items.filter(
+    (p) => p.product.toString() !== productId,
+  );
+
+  let total = otherCartItems.reduce((sum, product) => {
+    sum += product.quantity * product.unitPrice;
+    return sum;
+  }, 0);
+
+  existsInCart.quantity = quantity;
+  total += existsInCart.quantity * existsInCart.unitPrice;
+  cart.totalAmount = total;
+  const updatedCart = await cart.save();
+  return { data: updatedCart, statusCode: 200 };
 };
