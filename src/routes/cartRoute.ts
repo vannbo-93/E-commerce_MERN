@@ -6,6 +6,7 @@ import {
   getActiveCartForUser,
   updateItemInCart,
   clearCart,
+  cheCkout,
 } from "../services/cartService.js";
 import validateJWT from "../middlewares/validateJWT.js";
 import type { ExtendRequest } from "../types/extendedRequest.js";
@@ -51,5 +52,12 @@ router.delete(
     res.status(response.statusCode).send(response.data);
   },
 );
+
+router.post("/checkout", validateJWT, async (req: ExtendRequest, res) => {
+  const userId = req?.user?.id;
+  const { address } = req.body;
+  const response: any = await cheCkout({ userId, address });
+  res.status(response?.statusCode ?? 200).send(response?.data ?? response);
+});
 
 export default router;

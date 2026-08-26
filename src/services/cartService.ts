@@ -3,6 +3,8 @@
 import mongoose, { type ClientSession } from "mongoose";
 import { cartModel } from "../models/cartModel.js";
 import productModel from "../models/productModel.js";
+import { Checker } from "typescript/unstable/sync";
+import { orderModel, type IOrderItem } from "../models/orderModel.js";
 
 interface GetActiveCartForUser {
   userId: string;
@@ -242,4 +244,39 @@ export const deleteItemInCart = async ({
   const updatedCart = await cart.save();
 
   return { data: updatedCart, statusCode: 200 };
+};
+
+interface Checkout {
+  userId: string;
+  address: string;
+}
+
+export const cheCkout = async ({ userId, address }: Checkout) => {
+  const cart = await getActiveCartForUser({ userId });
+
+  const orderItems: IOrderItem[] = [];
+
+  //Loop cartItems and create orderItems
+  for (const item of cart.items) {
+    const product = await productModel.findById(item.product);
+
+    if (!product) {
+      return { data: "Product not found", statusCode: 400 };
+    }
+
+    const orderItem: IOrderItem = {
+      productTitle: product.title,
+      productImage: product.image,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    };
+    orderItems.push(orderItem);
+  }
+
+  const order = await orderModel.create({
+    orderItems,
+    total: cart.totalAmount,
+    address,
+  });
+  await order.save();
 };
