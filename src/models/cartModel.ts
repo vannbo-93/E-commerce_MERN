@@ -15,6 +15,7 @@ export interface ICart extends Document {
   items: ICartItem[];
   totalAmount: number;
   status: "active" | "completed";
+  calculateTotal(): number;
 }
 
 const cartItemSchema = new Schema<ICartItem>({
