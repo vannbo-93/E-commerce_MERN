@@ -3,6 +3,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import express from "express";
+// cors does not currently provide TypeScript declarations in this project.
+// @ts-expect-error Missing declaration file for the cors package.
+import cors from "cors";
 import mongoose from "mongoose";
 import userRoute from "./routes/userRoute.js";
 import { seedInitialProducts } from "./services/productService.js";
@@ -11,6 +14,8 @@ import cartRoute from "./routes/cartRoute.js";
 
 const app = express();
 const PORT = 3001;
+
+app.use(cors());
 app.use(express.json());
 app.use("/user", userRoute);
 app.use("/product", productRoute);

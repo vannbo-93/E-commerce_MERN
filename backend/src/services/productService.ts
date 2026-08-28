@@ -9,11 +9,24 @@ export const getAllProducts = async () => {
 export const seedInitialProducts = async () => {
   const products = [
     {
-      title: "HP 14 intel Core",
+      title: "Dell Laptop",
       image:
-        "https://i5.walmartimages.com/seo/HP-14-inch-Laptop-Intel-Core-i3-N305-8GB-RAM-256GB-SSD-Moonlight-Blue_3c814651-0efa-4e3c-9598-efb385991581.8bd1455c08963f272709c63b7f0dbf40.jpeg",
+        "https://grandediffusion.ma/wp-content/uploads/2016/03/dell-latitude-7400-i7-8665u-14-8go-512go-ssd-win-10.png",
+      price: 2500,
+      stock: 6,
+    },
+    {
+      title: "Asus Laptop",
+      image: "https://m.media-amazon.com/images/I/71Hy5SYr3tL._AC_SL1500_.jpg",
       price: 1500,
-      stock: 10,
+      stock: 5,
+    },
+    {
+      title: "HP Laptop",
+      image:
+        "https://www.trustedreviews.com/wp-content/uploads/sites/7/2023/01/HP-Envy-16-07.jpg",
+      price: 1650,
+      stock: 4,
     },
   ];
 
