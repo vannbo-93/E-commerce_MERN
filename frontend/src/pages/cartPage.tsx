@@ -1,9 +1,4 @@
 /** @format */
-// import Box from "@mui/material/Box";
-// import Button from "@mui/material/Button";
-// import ButtonGroup from "@mui/material/ButtonGroup";
-// import { useCart } from "../context/Cart/CartContext";
-// import { useNavigate } from "react-router-dom";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { useState, useEffect } from "react";
