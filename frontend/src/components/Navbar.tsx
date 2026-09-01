@@ -17,7 +17,7 @@ import { useAuth } from '../context/Auth/AuthContext';
 const settings = ['My Orders', 'Logout'];
 
 function Navbar() {
-  const { username } = useAuth();
+  const { username, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
 
@@ -33,6 +33,7 @@ function Navbar() {
     handleCloseUserMenu();
 
     if (setting === 'Logout') {
+      logout();
       navigate('/login');
     } else if (setting === 'My Orders') {
       navigate('/');
@@ -66,10 +67,10 @@ function Navbar() {
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
-                <Typography>{username}</Typography>
-              <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt={username || ""} src="/static/images/avatar/2.jpg" />
-              </IconButton>
+                {isAuthenticated && username && <Typography>{username}</Typography>}
+                <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                  <Avatar alt={username || 'User'} src="/static/images/avatar/2.jpg" />
+                </IconButton>
               </Box>
             </Tooltip>
             <Menu
