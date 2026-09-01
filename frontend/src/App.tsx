@@ -1,22 +1,26 @@
-import { BrowserRouter,Route,Routes } from "react-router-dom"
-import HomePage from "./pages/HomePage"
-import Navbar from "../src/components/Navbar"
-import RegisterPage from "../src/pages/RegisterPage"
+/** @format */
+
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import Navbar from "../src/components/Navbar";
+import RegisterPage from "../src/pages/RegisterPage";
 import AuthProvider from "../src/context/Auth/AuthProvider";
 import LoginPage from "./pages/LoginPage";
+import CartPage from "./pages/cartPage";
 
 function App() {
   return (
     <AuthProvider>
-    <BrowserRouter>
-    <Navbar/>
-    <Routes>
-      <Route path="/" element={<HomePage/>}/>
-      <Route path="/register" element={<RegisterPage/>}/>
-      <Route path="/login" element={<LoginPage/>}/>
-    </Routes>
-    </BrowserRouter>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/cart" element={<CartPage />} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
-  )
+  );
 }
-export default App
+export default App;
