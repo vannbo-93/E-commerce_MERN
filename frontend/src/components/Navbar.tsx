@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -10,14 +11,15 @@ import Avatar from '@mui/material/Avatar';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import AdbIcon from '@mui/icons-material/Adb';
-import useAuth from '../pages/RegisterPage';
+import { useAuth } from '../context/Auth/AuthContext';
+// import { Grid } from '@mui/material';
 
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+const settings = ['My Orders', 'Logout'];
 
 function Navbar() {
-  const {username, token} = useAuth();
+  const { username } = useAuth();
+  const navigate = useNavigate();
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(null);
-
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorElUser(event.currentTarget);
@@ -27,7 +29,15 @@ function Navbar() {
     setAnchorElUser(null);
   };
 
-  console.log('Form navbar',{username,token})
+  const handleMenuItemClick = (setting: string) => {
+    handleCloseUserMenu();
+
+    if (setting === 'Logout') {
+      navigate('/login');
+    } else if (setting === 'My Orders') {
+      navigate('/');
+    }
+  };
 
   return (
     <AppBar position="static">
@@ -55,9 +65,12 @@ function Navbar() {
         </Box>
           <Box sx={{ flexGrow: 0 }}>
             <Tooltip title="Open settings">
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                <Typography>{username}</Typography>
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                <Avatar alt="Remy Sharp" src="/static/images/avatar/2.jpg" />
+                <Avatar alt={username || ""} src="/static/images/avatar/2.jpg" />
               </IconButton>
+              </Box>
             </Tooltip>
             <Menu
               sx={{ mt: '45px' }}
@@ -76,7 +89,7 @@ function Navbar() {
               onClose={handleCloseUserMenu}
             >
               {settings.map((setting) => (
-                <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                <MenuItem key={setting}  onClick={() => handleMenuItemClick(setting)}>
                   <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
                 </MenuItem>
               ))}
