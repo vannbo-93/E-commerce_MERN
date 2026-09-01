@@ -42,9 +42,11 @@ const LoginPage = () => {
             setError("unable to register user, please try different credientials!");
             return;
         }
-        const token = await response.json();
+        const data: unknown = await response.json();
+        const token = typeof data === "object" && data !== null && "token" in data
+            && typeof data.token === "string" ? data.token : null;
 
-        if(!token) {
+        if(!token || !token.trim()) {
             setError("Incorrect token");
             return;
         }

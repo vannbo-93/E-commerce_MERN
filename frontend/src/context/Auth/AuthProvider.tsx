@@ -12,7 +12,7 @@ const AuthProvider: FC<PropsWithChildren> = ({children}) => {
     const isAuthenticated = !!token;
     
     const login = (username: string, authToken: string | null)=> {
-       const nextToken = authToken && authToken.trim() ? authToken : null;
+       const nextToken = typeof authToken === "string" && authToken.trim() ? authToken : null;
 
        setUsername(username);
        setToken(nextToken);
