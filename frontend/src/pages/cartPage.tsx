@@ -1,17 +1,23 @@
-/** @format */
+﻿/** @format */
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
-import { useState, useEffect } from "react";
+import Box from "@mui/material/Box";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/Auth/AuthContext";
 import { BASE_URL } from "../constants/baseUrl";
 
 interface CartItem {
-  [key: string]: unknown;
+  productId: string;
+  title: string;
+  image: string;
+  quantity: number;
+  unitPrice: number;
 }
 
 const CartPage = () => {
   const { token } = useAuth();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
@@ -32,28 +38,51 @@ const CartPage = () => {
           return;
         }
 
-        const data: unknown = await response.json();
-        setCart(
-          typeof data === "object" &&
-            data !== null &&
-            "items" in data &&
-            Array.isArray(data.items)
-            ? data.items
-            : [],
-        );
+        const data = await response.json();
+
+        const items = Array.isArray(data?.items)
+          ? data.items.map((item: any) => ({
+              productId: item?.product?._id ?? item?.product ?? "",
+              title: item?.product?.title ?? "Product",
+              image: item?.product?.image ?? "",
+              quantity: item?.quantity ?? 0,
+              unitPrice: item?.unitPrice ?? item?.product?.price ?? 0,
+            }))
+          : [];
+
+        setCartItems(items);
+        setTotalAmount(data?.totalAmount ?? 0);
       } catch {
         setError("Unable to connect to the server. Please try again!");
       }
     };
+
     fetchCart();
   }, [token]);
 
-  console.log({ cart });
   return (
     <Container sx={{ mt: 2 }}>
-      <Typography>My Cart</Typography>
-      {error && <Typography sx={{ color: "red" }}>{error}</Typography>}
+      <Typography variant="h4">My Cart</Typography>
+      {error && (
+        <Typography sx={{ color: "red", mt: 2 }}>{error}</Typography>
+      )}
+      {cartItems.length === 0 ? (
+        <Typography sx={{ mt: 2 }}>Your cart is empty.</Typography>
+      ) : (
+        cartItems.map((item) => (
+          <Box key={item.productId} sx={{ mb: 1 }}>
+            <Typography>{item.title}</Typography>
+            <Typography>{item.quantity} x {item.unitPrice} MAD</Typography>
+          </Box>
+        ))
+      )}
+      {cartItems.length > 0 && (
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          Total: {totalAmount} MAD
+        </Typography>
+      )}
     </Container>
   );
 };
+
 export default CartPage;

@@ -1,9 +1,14 @@
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
-import CardMedia from '@mui/material/CardMedia';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
+/** @format */
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
+import CardMedia from "@mui/material/CardMedia";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import { useCart } from "../context/Auth/cart/cartContext";
 
 interface Props {
   _id: string;
@@ -11,24 +16,43 @@ interface Props {
   image: string;
   price: string;
 }
-export default function ProductCard({title,image,price}: Props) {
+export default function ProductCard({ _id, title, image, price }: Props) {
+  const { addItemToCart } = useCart();
+  const [isAdding, setIsAdding] = useState(false);
+  const navigate = useNavigate();
+
+  const handleAddToCart = async () => {
+    if (isAdding) return;
+    setIsAdding(true);
+    try {
+      const success = await addItemToCart(_id);
+      if (success) {
+        navigate("/cart");
+      }
+    } finally {
+      setIsAdding(false);
+    }
+  };
   return (
     <Card>
-      <CardMedia
-        sx={{ height: 220 }}
-        image={image}
-        title="green iguana"
-      />
+      <CardMedia sx={{ height: 220 }} image={image} title="green iguana" />
       <CardContent>
         <Typography gutterBottom variant="h5" component="div">
           {title}
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-         {price} MAD
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          {price} MAD
         </Typography>
       </CardContent>
       <CardActions>
-        <Button variant='contained' size="small">Add to Cart</Button>
+        <Button
+          variant="text"
+          size="small"
+          sx={{ color: "#fff" }}
+          disabled={isAdding}
+          onClick={handleAddToCart}>
+          {isAdding ? "Adding..." : "Add to Cart"}
+        </Button>
       </CardActions>
     </Card>
   );

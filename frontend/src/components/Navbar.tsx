@@ -66,8 +66,7 @@ function Navbar() {
             <Typography
               variant="h6"
               noWrap
-              component="a"
-              href="#app-bar-with-responsive-menu"
+              onClick={() => navigate("/")}
               sx={{
                 mr: 2,
                 display: { xs: "none", md: "flex" },
@@ -76,6 +75,7 @@ function Navbar() {
                 letterSpacing: ".3rem",
                 color: "inherit",
                 textDecoration: "none",
+                cursor: "pointer",
               }}>
               TECH HUB
             </Typography>

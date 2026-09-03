@@ -1,10 +1,17 @@
-/** @format */
+﻿/** @format */
 
 import mongoose, { type ClientSession } from "mongoose";
 import { cartModel } from "../models/cartModel.js";
 import productModel from "../models/productModel.js";
-import { Checker } from "typescript/unstable/sync";
 import { orderModel, type IOrderItem } from "../models/orderModel.js";
+
+function getProductId(product: unknown): string {
+  if (!product) return "";
+  if (typeof product === "object" && product !== null && "_id" in product) {
+    return String((product as { _id: unknown })._id);
+  }
+  return String(product);
+}
 
 interface GetActiveCartForUser {
   userId: string;
@@ -15,10 +22,16 @@ export const getActiveCartForUser = async ({
   userId,
   session,
 }: GetActiveCartForUser) => {
-  const query = cartModel.findOne({
-    userId,
-    status: "active",
-  });
+  const query = cartModel
+    .findOne({
+      userId,
+      status: "active",
+    })
+    .populate({
+      path: "items.product",
+      model: "Product",
+      select: "title image price stock",
+    });
 
   const cart = session ? await query.session(session) : await query;
 
@@ -40,11 +53,11 @@ interface AddItemToCart {
   userId: string;
 }
 
-interface clearCart {
+interface ClearCart {
   userId: string;
 }
 
-export const clearCart = async ({ userId }: clearCart) => {
+export const clearCart = async ({ userId }: ClearCart) => {
   const cart = await getActiveCartForUser({ userId });
 
   cart.items = [];
@@ -67,7 +80,9 @@ export const addItemToCart = async ({
     };
   }
 
-  if (!Number.isInteger(quantity) || quantity <= 0) {
+  const normalizedQuantity = Number(quantity);
+
+  if (!Number.isInteger(normalizedQuantity) || normalizedQuantity <= 0) {
     return {
       data: "Quantity must be a positive integer",
       statusCode: 400,
@@ -91,72 +106,38 @@ export const addItemToCart = async ({
   const session = await mongoose.startSession();
 
   try {
-    return await session.withTransaction(async () => {
-      const cart = await getActiveCartForUser({
-        userId,
-        session,
-      });
+    const cart = await getActiveCartForUser({ userId });
 
-      const existsInCart = cart.items.find(
-        (item) => item.product.toString() === productId,
-      );
+    const existsInCart = cart.items.find(
+      (item) => getProductId(item.product) === productId,
+    );
+    if (existsInCart) {
+      return { data: "Item already exists in cart!", statusCode: 400 };
+    }
 
-      if (existsInCart) {
-        return {
-          data: "Item already exists in cart!",
-          statusCode: 400,
-        };
-      }
+    const product = await productModel.findOneAndUpdate(
+      { _id: productId, stock: { $gte: normalizedQuantity } },
+      { $inc: { stock: -normalizedQuantity } },
+      { returnDocument: "after" },
+    );
 
-      const product = await productModel.findOneAndUpdate(
-        {
-          _id: productId,
-          stock: { $gte: quantity },
-        },
-        {
-          $inc: {
-            stock: -quantity,
-          },
-        },
-        {
-          new: true,
-          session,
-        },
-      );
+    if (!product) {
+      return { data: "Product not found or low stock", statusCode: 404 };
+    }
 
-      if (!product) {
-        return {
-          data: "Product not found or low stock",
-          statusCode: 404,
-        };
-      }
-
-      cart.items.push({
-        product: new mongoose.Types.ObjectId(productId),
-        unitPrice: product.price,
-        quantity,
-      });
-
-      cart.calculateTotal();
-
-      const updatedCart = await cart.save({
-        session,
-      });
-
-      return {
-        data: updatedCart,
-        statusCode: 200,
-      };
+    cart.items.push({
+      product: new mongoose.Types.ObjectId(productId),
+      unitPrice: product.price,
+      quantity: normalizedQuantity,
     });
+
+    cart.calculateTotal();
+    const updatedCart = await cart.save();
+
+    return { data: updatedCart, statusCode: 200 };
   } catch (error) {
     console.error("Failed to add item to cart:", error);
-
-    return {
-      data: "Failed to add item to cart",
-      statusCode: 500,
-    };
-  } finally {
-    await session.endSession();
+    return { data: "Failed to add item to cart", statusCode: 500 };
   }
 };
 
@@ -171,10 +152,16 @@ export const updateItemInCart = async ({
   quantity,
   userId,
 }: UpdateItemInCart) => {
+  const normalizedQuantity = Number(quantity);
+
+  if (!Number.isInteger(normalizedQuantity) || normalizedQuantity <= 0) {
+    return { data: "Quantity must be a positive integer", statusCode: 400 };
+  }
+
   const cart = await getActiveCartForUser({ userId });
 
   const existsInCart = cart.items.find(
-    (p) => p.product.toString() === productId,
+    (p) => getProductId(p.product) === productId,
   );
 
   if (!existsInCart) {
@@ -187,30 +174,30 @@ export const updateItemInCart = async ({
     return { data: "Product not found!", statusCode: 400 };
   }
 
-  if (product.stock < quantity) {
+  const difference = normalizedQuantity - existsInCart.quantity;
+
+  if (difference > 0 && product.stock < difference) {
     return { data: "Low stock for item", statusCode: 400 };
   }
 
-  existsInCart.quantity = quantity;
+  if (difference > 0) {
+    product.stock -= difference;
+    await product.save();
+  } else if (difference < 0) {
+    product.stock += Math.abs(difference);
+    await product.save();
+  }
 
-  const otherCartItems = cart.items.filter(
-    (p) => p.product.toString() !== productId,
-  );
+  existsInCart.quantity = normalizedQuantity;
+  existsInCart.unitPrice = product.price;
+  cart.calculateTotal();
 
-  let total = otherCartItems.reduce((sum, product) => {
-    sum += product.quantity * product.unitPrice;
-    return sum;
-  }, 0);
-
-  existsInCart.quantity = quantity;
-  total += existsInCart.quantity * existsInCart.unitPrice;
-  cart.totalAmount = total;
   const updatedCart = await cart.save();
   return { data: updatedCart, statusCode: 200 };
 };
 
 interface DeleteItemInCart {
-  productId: any;
+  productId: string;
   userId: string;
 }
 
@@ -220,26 +207,23 @@ export const deleteItemInCart = async ({
 }: DeleteItemInCart) => {
   const cart = await getActiveCartForUser({ userId });
 
-  const existsInCart = cart.items.find(
-    (p) => p.product.toString() === productId,
+  const itemIndex = cart.items.findIndex(
+    (p) => getProductId(p.product) === productId,
   );
 
-  if (!existsInCart) {
+  if (itemIndex === -1) {
     return { data: "Item does not exist in cart", statusCode: 400 };
   }
 
-  const otherCartItems = cart.items.filter(
-    (p) => p.product.toString() !== productId,
-  );
+  const [removedItem] = cart.items.splice(itemIndex, 1);
 
-  const total = otherCartItems.reduce((sum, product) => {
-    sum += product.quantity * product.unitPrice;
-    return sum;
-  }, 0);
+  if (removedItem) {
+    await productModel.findByIdAndUpdate(removedItem.product, {
+      $inc: { stock: removedItem.quantity },
+    });
+  }
 
-  cart.totalAmount = total;
-  //delete this
-  cart.items = otherCartItems;
+  cart.calculateTotal();
 
   const updatedCart = await cart.save();
 
@@ -254,9 +238,12 @@ interface Checkout {
 export const cheCkout = async ({ userId, address }: Checkout) => {
   const cart = await getActiveCartForUser({ userId });
 
+  if (!cart.items.length) {
+    return { data: "Cart is empty", statusCode: 400 };
+  }
+
   const orderItems: IOrderItem[] = [];
 
-  //Loop cartItems and create orderItems
   for (const item of cart.items) {
     const product = await productModel.findById(item.product);
 
@@ -274,9 +261,16 @@ export const cheCkout = async ({ userId, address }: Checkout) => {
   }
 
   const order = await orderModel.create({
+    userId,
     orderItems,
     total: cart.totalAmount,
     address,
   });
-  await order.save();
+
+  cart.status = "completed";
+  cart.items = [];
+  cart.totalAmount = 0;
+  await cart.save();
+
+  return { data: order, statusCode: 201 };
 };

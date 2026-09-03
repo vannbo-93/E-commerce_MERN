@@ -7,7 +7,7 @@ import { useEffect, useState, type ComponentType } from "react";
 import { BASE_URL } from "../constants/baseUrl"
 
 type ProductCardProps = {
-  id: string;
+  _id: string;
   title: string;
   image: string;
   price: string;
@@ -42,7 +42,7 @@ const HomePage = () => {
       <Grid container spacing={2}>
         {products.map(({_id,title,image,price})=> (
         <Grid size={{ md: 4 }} key={_id}>
-          <TypedProductCard id={_id} title={title} image={image} price={price}/>
+          <TypedProductCard _id={_id} title={title} image={image} price={price}/>
         </Grid>
         ))}
       </Grid>
