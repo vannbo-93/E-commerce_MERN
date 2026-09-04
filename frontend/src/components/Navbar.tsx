@@ -17,14 +17,21 @@ import { useAuth } from "../context/Auth/AuthContext";
 // import { Grid } from '@mui/material';
 import ShoppingCart from "@mui/icons-material/ShoppingCart";
 import { Badge } from "@mui/material";
+import { useCart } from "../context/Auth/cart/cartContext";
 
 const settings = ["My Orders", "Logout"];
 
 function Navbar() {
   const { username, isAuthenticated, logout } = useAuth();
+  const { cartItems } = useCart();
   const navigate = useNavigate();
   const [anchorElUser, setAnchorElUser] = React.useState<null | HTMLElement>(
     null,
+  );
+
+  const cartItemsCount = cartItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
   );
 
   const handleOpenUserMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -90,7 +97,7 @@ function Navbar() {
               justifyContent: "center",
             }}>
             <IconButton aria-label="cart" onClick={handlerCart}>
-              <Badge badgeContent={4} color="secondary">
+              <Badge badgeContent={cartItemsCount} color="secondary">
                 <ShoppingCart sx={{ color: "#ffffff" }} />
               </Badge>
             </IconButton>

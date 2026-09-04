@@ -1,7 +1,7 @@
 ﻿/** @format */
 
 import type { FC, PropsWithChildren } from "react";
-import { useContext, useState } from "react";
+import { useContext, useState, useEffect } from "react";
 import { CartContext } from "./cartContext";
 import type { CartItem } from "../../../types/CartItems";
 import { BASE_URL } from "../../../constants/baseUrl";
@@ -13,10 +13,68 @@ const CartProvider: FC<PropsWithChildren> = ({ children }) => {
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [error, setError] = useState("");
 
-  const addItemToCart = async (productId: string) => {
+  const mapCartResponse = (cart: {
+    items?: Array<{
+      product?: {
+        _id?: string;
+        title?: string;
+        image?: string;
+        price?: number;
+        unitPrice?: number;
+      };
+      quantity: number;
+    }>;
+  }): CartItem[] =>
+    Array.isArray(cart?.items)
+      ? cart.items
+          .map(
+            ({
+              product,
+              quantity,
+            }: {
+              product?: {
+                _id?: string;
+                title?: string;
+                image?: string;
+                price?: number;
+                unitPrice?: number;
+              };
+              quantity: number;
+            }) => ({
+              productId: product?._id ?? "",
+              title: product?.title ?? "",
+              image: product?.image ?? "",
+              quantity,
+              unitPrice: product?.price ?? product?.unitPrice ?? 0,
+            }),
+          )
+          .filter((item: CartItem) => item.productId)
+      : [];
+
+  useEffect(() => {
+    if (!token) return;
+
+    const fetchCart = async () => {
+      try {
+        const response = await fetch(`${BASE_URL}/cart`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const cart = await response.json();
+        setCartItems(mapCartResponse(cart));
+        setTotalAmount(cart?.totalAmount ?? 0);
+      } catch (caughtError) {
+        console.error("❌ خطأ أثناء جلب السلة:", caughtError);
+      }
+    };
+
+    fetchCart();
+  }, [token]);
+
+  const addItemToCart = async (productId: string): Promise<boolean> => {
     if (!token) {
       setError("Please log in before adding products to the cart.");
-      return;
+      return false;
     }
 
     try {
@@ -43,21 +101,12 @@ const CartProvider: FC<PropsWithChildren> = ({ children }) => {
 
       if (!cart || !Array.isArray(cart.items)) {
         setError("❌ خطأ: لم يتم استلام بيانات السلة من الخادم!");
-        return true;
+        return false;
       }
 
-      const cartItemsMapped: CartItem[] = cart.items
-        .map(({ product, quantity }: { product?: any; quantity: number }) => ({
-          productId: product?._id ?? "",
-          title: product?.title ?? "",
-          image: product?.image ?? "",
-          quantity,
-          unitPrice: product?.price ?? product?.unitPrice ?? 0,
-        }))
-        .filter((item: CartItem) => item.productId);
-
-      setCartItems(cartItemsMapped);
+      setCartItems(mapCartResponse(cart));
       setTotalAmount(cart.totalAmount ?? 0);
+      return true;
     } catch (caughtError) {
       console.error("❌ خطأ أثناء إضافة المنتج إلى السلة:", caughtError);
       setError("حدث خطأ أثناء إضافة المنتج إلى السلة. يرجى المحاولة مرة أخرى.");

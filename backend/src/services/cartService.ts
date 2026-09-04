@@ -132,9 +132,10 @@ export const addItemToCart = async ({
     });
 
     cart.calculateTotal();
-    const updatedCart = await cart.save();
+    await cart.save();
+    const populatedCart = await getActiveCartForUser({ userId });
 
-    return { data: updatedCart, statusCode: 200 };
+    return { data: populatedCart, statusCode: 200 };
   } catch (error) {
     console.error("Failed to add item to cart:", error);
     return { data: "Failed to add item to cart", statusCode: 500 };
