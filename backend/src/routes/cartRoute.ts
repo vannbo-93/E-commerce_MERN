@@ -72,8 +72,8 @@ router.delete(
     try {
       const userId = getUserId(req);
       const productId = Array.isArray(req.params.productId)
-        ? req.params.productId[0]
-        : req.params.productId ?? "";
+        ? (req.params.productId[0] ?? "")
+        : (req.params.productId ?? "");
       const response = await deleteItemInCart({ userId, productId });
       res.status(response.statusCode).send(response.data);
     } catch {
@@ -85,7 +85,8 @@ router.delete(
 router.post("/checkout", validateJWT, async (req: ExtendRequest, res) => {
   try {
     const userId = getUserId(req);
-    const address = typeof req.body?.address === "string" ? req.body.address : "";
+    const address =
+      typeof req.body?.address === "string" ? req.body.address : "";
     const response: any = await cheCkout({ userId, address });
     res.status(response?.statusCode ?? 200).send(response?.data ?? response);
   } catch {

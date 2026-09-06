@@ -7,6 +7,17 @@ import type { CartItem } from "../../../types/CartItems";
 import { BASE_URL } from "../../../constants/baseUrl";
 import { AuthContext } from "../AuthContext";
 
+type CartApiItem = {
+  product?: {
+    _id?: string;
+    title?: string;
+    image?: string;
+    price?: number;
+    unitPrice?: number;
+  };
+  quantity: number;
+};
+
 const CartProvider: FC<PropsWithChildren> = ({ children }) => {
   const { token } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -114,23 +125,107 @@ const CartProvider: FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
-  const updateItemInCart = (productId: string, quantity: number) => {
-    setCartItems((prevItems: CartItem[]) =>
-      prevItems.map((item: CartItem) =>
-        item.productId === productId ? { ...item, quantity } : item,
-      ),
-    );
+  const updateItemInCart = async (productId: string, quantity: number) => {
+    try {
+      const response = await fetch(`${BASE_URL}/cart/items`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId, quantity }),
+      });
+
+      if (!response.ok) {
+        setError("Failed to update cart");
+        return;
+      }
+
+      const cart = await response.json();
+
+      const cartItemsMapped = cart.items.map(
+        ({ product, quantity }: CartApiItem) => ({
+          productId: product?._id ?? "",
+          title: product?.title ?? "",
+          image: product?.image ?? "",
+          quantity,
+          unitPrice: product?.price ?? product?.unitPrice ?? 0,
+        }),
+      );
+
+      setCartItems(cartItemsMapped);
+      setTotalAmount(cart.totalAmount);
+    } catch (error) {
+      console.error(error);
+      setError("Failed to update cart");
+    }
   };
 
-  const removeItemInCart = (productId: string) => {
-    setCartItems((prevItems: CartItem[]) =>
-      prevItems.filter((item: CartItem) => item.productId !== productId),
-    );
+  const removeItemInCart = async (productId: string) => {
+    try {
+      const response = await fetch(`${BASE_URL}/cart/items/${productId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        setError("Failed to delete to cart");
+      }
+      const cart = await response.json();
+      if (!cart) {
+        setError("Failed to parse cart data");
+      }
+
+      const cartItemsMapped = cart.items.map(
+        ({
+          product,
+          quantity,
+          unitPrice,
+        }: {
+          product?: CartApiItem["product"];
+          quantity: number;
+          unitPrice: number;
+        }) => ({
+          productId: product?._id ?? "",
+          title: product?.title ?? "",
+          image: product?.image ?? "",
+          quantity,
+          unitPrice,
+        }),
+      );
+      setCartItems([...cartItemsMapped]);
+      setTotalAmount(cart.totalAmount);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
-    setTotalAmount(0);
+  const clearCart = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/cart`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        setError("Failed to empty to cart");
+      }
+
+      const cart = await response.json();
+
+      if (!cart) {
+        setError("Failed to parse cart data");
+      }
+
+      setCartItems([]);
+      setTotalAmount(0);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (

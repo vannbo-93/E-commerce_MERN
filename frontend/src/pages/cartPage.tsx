@@ -1,88 +1,83 @@
 ﻿/** @format */
-import Typography from "@mui/material/Typography";
-import Container from "@mui/material/Container";
-import Box from "@mui/material/Box";
-import { useEffect, useState } from "react";
-import { useAuth } from "../context/Auth/AuthContext";
-import { BASE_URL } from "../constants/baseUrl";
-
-interface CartItem {
-  productId: string;
-  title: string;
-  image: string;
-  quantity: number;
-  unitPrice: number;
-}
+import { Box, Button, ButtonGroup, Container, Typography } from "@mui/material";
+import { useCart } from "../context/Auth/cart/cartContext";
 
 const CartPage = () => {
-  const { token } = useAuth();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [totalAmount, setTotalAmount] = useState<number>(0);
-  const [error, setError] = useState<string>("");
+  const { cartItems, totalAmount, updateItemInCart, removeItemInCart } =
+    useCart();
 
-  useEffect(() => {
-    if (!token || !token.trim()) {
+  const handleQuantity = (productId: string, quantity: number) => {
+    if (quantity <= 0) {
       return;
     }
+    updateItemInCart(productId, quantity);
+  };
 
-    const fetchCart = async () => {
-      try {
-        const response = await fetch(`${BASE_URL}/cart`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          setError("Unable to fetch cart, please try again!");
-          return;
-        }
-
-        const data = await response.json();
-
-        const items = Array.isArray(data?.items)
-          ? data.items.map((item: any) => ({
-              productId: item?.product?._id ?? item?.product ?? "",
-              title: item?.product?.title ?? "Product",
-              image: item?.product?.image ?? "",
-              quantity: item?.quantity ?? 0,
-              unitPrice: item?.unitPrice ?? item?.product?.price ?? 0,
-            }))
-          : [];
-
-        setCartItems(items);
-        setTotalAmount(data?.totalAmount ?? 0);
-      } catch {
-        setError("Unable to connect to the server. Please try again!");
-      }
-    };
-
-    fetchCart();
-  }, [token]);
+  const handlerRemoveItem = (productId: string) => {
+    removeItemInCart(productId);
+  };
 
   return (
-    <Container sx={{ mt: 2 }}>
+    <Container fixed sx={{ mt: 2 }}>
       <Typography variant="h4">My Cart</Typography>
-      {error && (
-        <Typography sx={{ color: "red", mt: 2 }}>{error}</Typography>
-      )}
-      {cartItems.length === 0 ? (
-        <Typography sx={{ mt: 2 }}>Your cart is empty.</Typography>
-      ) : (
-        cartItems.map((item) => (
-          <Box key={item.productId} sx={{ mb: 1 }}>
-            <Typography>{item.title}</Typography>
-            <Typography>{item.quantity} x {item.unitPrice} MAD</Typography>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {cartItems.map((item) => (
+          <Box
+            key={item.productId}
+            sx={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              border: 1,
+              borderColor: "#f2f2f2",
+              borderRadius: 5,
+              padding: 1,
+            }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 1,
+              }}>
+              <img src={item.image} width={120} />
+
+              <Box>
+                <Typography variant="h6">{item.title}</Typography>
+                <Typography>
+                  {item.quantity} x {item.unitPrice} MAD
+                </Typography>
+                <Button onClick={() => handlerRemoveItem(item.productId)}variant="contained"sx={{ backgroundColor: "#ff0000" }}>
+                  Delete
+                </Button>
+              </Box>
+            </Box>
+
+            <ButtonGroup variant="contained" aria-label="Basic button group">
+              <Button
+                onClick={() =>
+                  handleQuantity(item.productId, item.quantity - 1)
+                }>
+                -
+              </Button>
+              <Button
+                onClick={() =>
+                  handleQuantity(item.productId, item.quantity + 1)
+                }>
+                +
+              </Button>
+            </ButtonGroup>
           </Box>
-        ))
-      )}
-      {cartItems.length > 0 && (
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Total: {totalAmount} MAD
-        </Typography>
-      )}
+        ))}
+
+        <Box>
+          <Typography variant="h4">
+            Total Amount: {totalAmount.toFixed(2)} MAD
+          </Typography>
+        </Box>
+      </Box>
     </Container>
   );
 };
-
 export default CartPage;
