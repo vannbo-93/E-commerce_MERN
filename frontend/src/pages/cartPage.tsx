@@ -1,10 +1,16 @@
 ﻿/** @format */
 import { Box, Button, ButtonGroup, Container, Typography } from "@mui/material";
 import { useCart } from "../context/Auth/cart/cartContext";
+import { useNavigate } from "react-router-dom";
 
 const CartPage = () => {
-  const { cartItems, totalAmount, updateItemInCart, removeItemInCart } =
-    useCart();
+  const {
+    cartItems,
+    totalAmount,
+    updateItemInCart,
+    removeItemInCart,
+    clearCart,
+  } = useCart();
 
   const handleQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
@@ -17,9 +23,26 @@ const CartPage = () => {
     removeItemInCart(productId);
   };
 
+  const navigate = useNavigate();
+
   return (
     <Container fixed sx={{ mt: 2 }}>
-      <Typography variant="h4">My Cart</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          mb: 4,
+        }}>
+        <Typography variant="h4">My Cart</Typography>
+        <Button
+          onClick={() => clearCart()}
+          variant="contained"
+          sx={{ backgroundColor: "#ff0000" }}>
+          Clear Cart
+        </Button>
+      </Box>
+      {/* {cartItems.length === 0 ? ( */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {cartItems.map((item) => (
           <Box
@@ -48,7 +71,10 @@ const CartPage = () => {
                 <Typography>
                   {item.quantity} x {item.unitPrice} MAD
                 </Typography>
-                <Button onClick={() => handlerRemoveItem(item.productId)}variant="contained"sx={{ backgroundColor: "#ff0000" }}>
+                <Button
+                  onClick={() => handlerRemoveItem(item.productId)}
+                  variant="contained"
+                  sx={{ backgroundColor: "#ff0000" }}>
                   Delete
                 </Button>
               </Box>
@@ -71,12 +97,23 @@ const CartPage = () => {
           </Box>
         ))}
 
-        <Box>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}>
           <Typography variant="h4">
             Total Amount: {totalAmount.toFixed(2)} MAD
           </Typography>
+          <Button variant="contained" onClick={() => navigate("/checkout")}>
+            Go To Checkout
+          </Button>
         </Box>
       </Box>
+      {/* ) : ( */}
+      {/* <Typography variant="h5">Your cart is empty.</Typography> */}
+      {/* )} */}
     </Container>
   );
 };
